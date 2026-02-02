@@ -1,12 +1,12 @@
 <nav x-data="{ open: false }" class="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="w-full  px-4 sm:px-6 lg:px-10">
         <div class="flex justify-between h-20"> <div class="flex">
                 <div class="shrink-0 flex items-center">
                     <a href="{{ route('home') }}" class="flex items-center gap-3 group">
-                        <img src="{{ asset('images/logo.jpeg') }}" alt="Eventus" class="h-12 w-auto transition-transform group-hover:scale-110">
+                        <img src="{{ asset('images/logo-eventus.png') }}" alt="Eventus" class="h-12 w-auto transition-transform group-hover:scale-110">
                         <div class="hidden md:flex flex-col">
                             <span class="text-xl font-black text-slate-800 tracking-tighter leading-none">EVENTUS</span>
-                            <span class="text-[9px] font-bold text-indigo-600 uppercase tracking-[0.2em]">Tanger Hub</span>
+                            <span class="text-[9px] font-black text-indigo-600 uppercase tracking-[0.2em]">Tanger Hub</span>
                         </div>
                     </a>
                 </div>

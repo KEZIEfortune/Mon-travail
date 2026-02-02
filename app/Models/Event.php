@@ -11,7 +11,7 @@ class Event extends Model
 
     protected $fillable = [
         'title', 
-        'slug',          // Ajouté (obligatoire pour ta migration)
+        'slug',
         'description', 
         'start_date', 
         'end_date', 
@@ -22,9 +22,10 @@ class Event extends Model
         'image', 
         'category_id', 
         'organizer_id', 
-        'status',        // Correction de 'satatus'
+        'status',
+        'is_validated', // AJOUTÉ : indispensable pour ta validation admin
         'is_active',
-        'available_tickets'
+        'available_tickets' // Vérifie que c'est bien le nom utilisé dans ton formulaire
     ];
 
     // Relation vers la catégorie
@@ -33,7 +34,7 @@ class Event extends Model
         return $this->belongsTo(Category::class);
     }
 
-    // Relation vers l'organisateur (qui est un User)
+    // Relation vers l'organisateur
     public function organizer()
     {
         return $this->belongsTo(User::class, 'organizer_id');
@@ -46,14 +47,14 @@ class Event extends Model
 
     public function comments()
     {
-        return $this->hasMany(Comment::class)->where('is_approved', true);
+        // On récupère les commentaires approuvés
+        return $this->hasMany(Comment::class);
     }
 
-    // Logique métier
+    // Logique métier pour la disponibilité
     public function isAvailable()
     {
-        // Attention : ta migration n'a pas de colonne 'status', 
-        // assure-toi de l'ajouter ou d'utiliser 'is_active'
-        return $this->is_active && $this->start_date > now();
+        // Un événement est disponible s'il est actif, approuvé et pas encore passé
+        return $this->is_active && $this->status === 'approved' && $this->start_date > now();
     }
 }

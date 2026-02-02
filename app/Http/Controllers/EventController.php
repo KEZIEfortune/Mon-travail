@@ -5,64 +5,99 @@ namespace App\Http\Controllers;
 use App\Models\Event;
 use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class EventController extends Controller
-{ 
+{
+    /**
+     * Liste des événements publics (Approuvés et Validés)
+     */
     public function index(Request $request)
     {
-        $query = Event::with(['category', 'organizer', 'comments'])
-            ->where('is_active', true)
-            ->where('status', 'approved');
+        $query = Event::with('organizer')
+            ->where('status', 'approved') // 'approved' est dans ton ENUM
+            ->where('is_validated', 1)
+            ->where('start_date', '>=', now());
 
-        // Filtre de recherche
-        if ($request->search) {
-            $query->where(function($q) use ($request) {
-                $q->where('title', 'like', '%' . $request->search . '%')
-                  ->orWhere('description', 'like', '%' . $request->search . '%')
-                  ->orWhere('city', 'like', '%' . $request->search . '%');
-            });
-        }
-
-        // Filtre par région
-        if ($request->region) {
-            $query->where('region', $request->region);
-        }
-
-        // Filtre par catégorie
-        if ($request->category) {
+        if ($request->has('category') && $request->category) {
             $query->where('category_id', $request->category);
         }
 
-        // Filtre par type
-        if ($request->type) {
-            $query->where('type', $request->type);
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhere('city', 'like', "%{$search}%")
+                  ->orWhere('region', 'like', "%{$search}%");  // Ajoute la recherche par région
+            });
         }
 
-        $events = $query->get();
+        $query->orderBy('start_date', 'asc');
 
-        // 5. IMPORTANT : On envoie la variable $events à la vue dashboard
-        // Vérifie bien que le nom de ton fichier vue est correct ('member.dashboard' ou 'dashboard')
-        return view('member.dashboard', compact('events'));
-
-        $events = $query->orderBy('start_date', 'asc')->paginate(12);
+        $events = $query->paginate(12);
         $categories = Category::all();
-        
+
         return view('events.index', compact('events', 'categories'));
     }
 
-    public function show($id)
+    /**
+     * Enregistrer un nouvel événement (Colonnes BDD respectées)
+     */
+    public function store(Request $request)
     {
-        $events = Event::with(['category', 'organizer', 'comments.user'])->findOrFail($id);
-        return view('events.show', compact('event'));
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'start_date' => 'required|date|after:now',
+            'end_date' => 'required|date|after:start_date',
+            'location' => 'required|string|max:255',
+            'city' => 'required|string|max:255',
+            'price' => 'required|numeric|min:0',
+            'category_id' => 'required|exists:categories,id',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        try {
+            $data = $request->all();
+            $data['organizer_id'] = Auth::id();
+            $data['status'] = 'pending';   // Par défaut en attente
+            $data['is_validated'] = 0;     // Non validé par défaut
+            $data['slug'] = Str::slug($request->title) . '-' . time();
+
+            if ($request->hasFile('image')) {
+                $data['image'] = $request->file('image')->store('events', 'public');
+            }
+
+            Event::create($data);
+
+            return redirect()->route('organisateur.events.index')
+                ->with('success', 'Événement créé ! En attente de validation admin.');
+
+        } catch (\Exception $e) {
+            return redirect()->back()->withInput()->with('error', 'Erreur : ' . $e->getMessage());
+        }
     }
 
-    public function calendar()
+    /**
+     * Action pour l'Admin : Valider un événement
+     */
+    public function validateEvent($id)
     {
-        $events = Event::where('is_active', true)
-            ->where('status', 'approved')
-            ->orderBy('start_date', 'asc')
-            ->get();
-        
-        return view('events.calendar', compact('events'));
+        if (Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
+        $event = Event::findOrFail($id);
+        $event->update([
+            'status' => 'approved',
+            'is_validated' => 1
+        ]);
+
+        return redirect()->back()->with('success', 'Événement approuvé et publié !');
     }
+
+    // ... Gardez vos méthodes show, edit, update, destroy en remplaçant 'titre' par 'title'
 }

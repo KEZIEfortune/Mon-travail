@@ -12,7 +12,7 @@ use Illuminate\View\View;
 class AuthenticatedSessionController extends Controller
 {
     /**
-     * Display the login view.
+     * Affiche la vue de connexion.
      */
     public function create(): View
     {
@@ -20,7 +20,32 @@ class AuthenticatedSessionController extends Controller
     }
 
     /**
-     * Destroy an authenticated session.
+     * Gère la tentative d'authentification.
+     */
+    public function store(LoginRequest $request): RedirectResponse
+    {
+        $request->authenticate();
+
+        $request->session()->regenerate();
+
+        // Utilise la route 'dashboard' qui fait l'aiguillage selon le rôle
+        $user = Auth::user();
+
+    // Redirection sur mesure selon le rôle
+    if ($user->role === 'admin') {
+        return redirect()->intended(route('admin.dashboard'));
+    } 
+    
+    if ($user->role === 'organizer') {
+        return redirect()->intended(route('organizer.dashboard'));
+    }
+
+    // Par défaut pour les membres simples
+    return redirect()->intended('/member/dashboard');
+    }
+
+    /**
+     * Détruit une session authentifiée (Déconnexion).
      */
     public function destroy(Request $request): RedirectResponse
     {
@@ -31,25 +56,5 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/');
-    }
-
-    public function store(LoginRequest $request): RedirectResponse
-    {
-        $request->authenticate();
-
-        $request->session()->regenerate();
-
-        // Récupération de l'utilisateur connecté
-        $user = Auth::user();
-
-        // Redirection dynamique selon le rôle défini dans votre migration
-        if ($user->role === 'admin') {
-            return redirect()->route('admin.dashboard');
-        } elseif ($user->role === 'organisateur') {
-            return redirect()->route('organisateur.dashboard');
-        }
-
-        // Par défaut, redirige vers l'espace membre
-      return redirect()->route('member.dashboard');
     }
 }

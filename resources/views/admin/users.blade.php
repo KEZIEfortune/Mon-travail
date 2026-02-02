@@ -17,7 +17,7 @@
     <div class="bg-white rounded-xl shadow-md p-6 mb-8">
         <h2 class="text-2xl font-bold mb-4">➕ Créer un nouveau membre</h2>
         
-        <form action="{{ route('admin.users.create') }}" method="POST">
+        <form action="{{ route('admin.members.store') }}" method="POST">
             @csrf
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -78,7 +78,7 @@
                         </td>
                         <td>{{ $user->created_at->format('d/m/Y') }}</td>
                         <td>
-                            <form action="{{ route('admin.users.toggle', $user) }}" method="POST">
+                            <form action="{{ route('admin.members.update', $user) }}" method="POST">
                                 @csrf
                                 @method('PUT')
                                 <button type="submit" class="text-blue-600 hover:text-blue-800">

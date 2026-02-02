@@ -188,12 +188,14 @@ nav {
 
 /* Hero Section */
 .hero {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 4rem 2rem;
-    border-radius: 15px;
+    background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), 
+    url('{{ asset("images/fond-fete.jpg") }}') no-repeat center center/cover;
+    height: 60vh;
+    display: flex;
+    align-items: center;
     color: white;
-    margin-bottom: 2rem;
-    text-align: center;
+    margin-top: -24px;
+    
 }
 
 .hero h1 {

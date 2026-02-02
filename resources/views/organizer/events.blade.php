@@ -1,5 +1,10 @@
 @extends('layouts.app')
-
+@section('styles')
+<style>
+    
+    </style>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+@endSection
 @section('title', 'Mes événements')
 
 @section('content')
@@ -18,7 +23,7 @@
 
     <!-- Liste des événements -->
     <div class="space-y-4">
-        @forelse($events as $event)
+        @forelse($recentEvents as $event)
             <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition">
                 <div class="flex items-start justify-between">
                     <div class="flex-1">
@@ -70,8 +75,5 @@
         @endforelse
     </div>
 
-    <div class="mt-6">
-        {{ $events->links() }}
-    </div>
 </div>
 @endsection

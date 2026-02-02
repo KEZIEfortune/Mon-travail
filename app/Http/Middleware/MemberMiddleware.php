@@ -4,16 +4,20 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Auth;
 
 class MemberMiddleware
 {
-  public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next)
     {
-        if (!Auth::check() || !Auth::user()->role !== 'Member'()) {
-            abort(403, 'Accès non autorisé');
+        if (!Auth::check()) {
+            return redirect()->route('login');
         }
+
+        if (Auth::user()->role !== 'member') {
+          abort(403, 'Ton rôle actuel est : ' . Auth::user()->role . '. Tu n\'es pas reconnu comme member.');  
+        }
+
         return $next($request);
-    }  
+    }
 }

@@ -16,6 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'organizer' => \App\Http\Middleware\OrganizerMiddleware::class,
             'member' => \App\Http\Middleware\MemberMiddleware::class,
         ]);
+       
+    
+    
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

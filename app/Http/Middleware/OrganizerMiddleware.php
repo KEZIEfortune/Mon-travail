@@ -4,17 +4,20 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Auth;
 
 class OrganizerMiddleware
 {
-  public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next)
     {
-        if (!Auth::check() || !Auth::user()->role === 'Organizer') {
-            abort(403, 'Accès non autorisé');
+        if (!Auth::check()) {
+            return redirect()->route('login');
         }
-        return $next($request);
-    } 
-}
 
+        if (Auth::user()->role !== 'organizer') {
+            abort(403, 'Accès non autorisé - Réservé aux organisateurs');
+        }
+
+        return $next($request);
+    }
+}

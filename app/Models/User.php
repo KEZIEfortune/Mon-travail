@@ -32,24 +32,25 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean', // Permet de manipuler true/false au lieu de 1/0
         ];
     }
-     public function isAdmin()
+     public function isAdmin():bool
     {
         return $this->role === 'admin';
     }
 
-    public function isOrganizer()
+    public function isOrganizer():bool
     {
         return $this->role === 'organizer';
     }
 
-    public function isMember()
+    public function isMember():bool
     {
         return $this->role === 'member';
     }
 
-    public function events()
+    public function organizedEvents()
     {
         return $this->hasMany(Event::class, 'organizer_id');
     }

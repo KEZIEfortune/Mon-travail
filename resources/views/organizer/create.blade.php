@@ -1,130 +1,80 @@
 @extends('layouts.app')
 
-@section('title', 'Créer un événement')
+@section('styles')
+<style>
+    :root { --dark:#1a1a2e; --dark-mid:#16213e; --gold:#d4a017; --white:#ffffff; --text-dim:#6e7590; }
+    body { background: var(--dark); color: var(--white); font-family: 'Jost', sans-serif; }
+    .form-section { padding: 120px 40px; max-width: 900px; margin: 0 auto; }
+    .form-card { background: var(--dark-mid); border: 1px solid rgba(212,160,23,0.2); padding: 40px; border-radius: 15px; }
+    h1 { font-family: 'Cormorant Garamond', serif; color: var(--gold); margin-bottom: 30px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .form-group { margin-bottom: 20px; }
+    label { display: block; font-size: 12px; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; }
+    input, textarea, select { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(212,160,23,0.1); padding: 12px; color: white; border-radius: 8px; }
+    .btn-submit { background: linear-gradient(135deg, #8b5cf6, #a78bfa); color: white; border: none; padding: 15px 30px; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 20px; width: 100%; }
+</style>
+@endsection
 
 @section('content')
-<div class="container mx-auto px-4 py-8 max-w-4xl">
-    <div class="flex justify-between items-center mb-8">
-        <h1 class="text-4xl font-bold text-gray-900">➕ Créer un événement</h1>
-        <a href="{{ route('organizer.events') }}" class="btn-secondary">← Retour</a>
-    </div>
-
-    <div class="bg-white rounded-xl shadow-md p-8">
+<section class="form-section">
+    <div class="form-card">
+        <h1>✨ Créer un Événement</h1>
         <form action="{{ route('organizer.events.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
-
-            <div class="space-y-6">
-                <!-- Titre -->
-                <div>
-                    <label class="form-label">Titre de l'événement *</label>
-                    <input type="text" name="title" class="form-input" required value="{{ old('title') }}">
-                    @error('title')<p class="form-error">{{ $message }}</p>@enderror
-                </div>
-
-                <!-- Description -->
-                <div>
-                    <label class="form-label">Description *</label>
-                    <textarea name="description" rows="5" class="form-input" required>{{ old('description') }}</textarea>
-                    @error('description')<p class="form-error">{{ $message }}</p>@enderror
-                </div>
-
-                <!-- Type et Catégorie -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="form-label">Type *</label>
-                        <select name="type" class="form-input" required>
-                            <option value="">Sélectionnez un type</option>
-                            <option value="festival">Festival</option>
-                            <option value="concert">Concert</option>
-                            <option value="exposition">Exposition</option>
-                            <option value="theatre">Théâtre</option>
-                        </select>
-                        @error('type')<p class="form-error">{{ $message }}</p>@enderror
-                    </div>
-
-                    <div>
-                        <label class="form-label">Catégorie *</label>
-                        <select name="category_id" class="form-input" required>
-                            <option value="">Sélectionnez une catégorie</option>
-                            @foreach($categories as $category)
-                                <option value="{{ $category->id }}">{{ $category->name }}</option>
-                            @endforeach
-                        </select>
-                        @error('category_id')<p class="form-error">{{ $message }}</p>@enderror
-                    </div>
-                </div>
-
-                <!-- Dates -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="form-label">Date de début *</label>
-                        <input type="datetime-local" name="start_date" class="form-input" required value="{{ old('start_date') }}">
-                        @error('start_date')<p class="form-error">{{ $message }}</p>@enderror
-                    </div>
-
-                    <div>
-                        <label class="form-label">Date de fin</label>
-                        <input type="datetime-local" name="end_date" class="form-input" value="{{ old('end_date') }}">
-                        @error('end_date')<p class="form-error">{{ $message }}</p>@enderror
-                    </div>
-                </div>
-
-                <!-- Localisation -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="form-label">Lieu *</label>
-                        <input type="text" name="location" class="form-input" required value="{{ old('location') }}">
-                        @error('location')<p class="form-error">{{ $message }}</p>@enderror
-                    </div>
-
-                    <div>
-                        <label class="form-label">Ville *</label>
-                        <input type="text" name="city" class="form-input" required value="{{ old('city') }}">
-                        @error('city')<p class="form-error">{{ $message }}</p>@enderror
-                    </div>
-
-                    <div>
-                        <label class="form-label">Région *</label>
-                        <input type="text" name="region" class="form-input" required value="{{ old('region') }}">
-                        @error('region')<p class="form-error">{{ $message }}</p>@enderror
-                    </div>
-                </div>
-
-                <!-- Prix et Places -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="form-label">Prix (DH)</label>
-                        <input type="number" name="price" class="form-input" min="0" step="0.01" value="{{ old('price', 0) }}">
-                        <p class="text-sm text-gray-500 mt-1">Laissez 0 pour un événement gratuit</p>
-                        @error('price')<p class="form-error">{{ $message }}</p>@enderror
-                    </div>
-
-                    <div>
-                        <label class="form-label">Places disponibles</label>
-                        <input type="number" name="available_tickets" class="form-input" min="0" value="{{ old('available_tickets') }}">
-                        @error('available_tickets')<p class="form-error">{{ $message }}</p>@enderror
-                    </div>
-                </div>
-
-                <!-- Image -->
-                <div>
-                    <label class="form-label">Image de l'événement</label>
-                    <input type="file" name="image" class="form-input" accept="image/*">
-                    <p class="text-sm text-gray-500 mt-1">Format: JPG, PNG (max 2MB)</p>
-                    @error('image')<p class="form-error">{{ $message }}</p>@enderror
-                </div>
-
-                <!-- Boutons -->
-                <div class="flex gap-4 pt-4">
-                    <button type="submit" class="btn-primary flex-1">✅ Créer l'événement</button>
-                    <a href="{{ route('organizer.events') }}" class="btn-secondary flex-1 text-center">❌ Annuler</a>
-                </div>
-
-                <p class="text-sm text-gray-500 text-center">
-                    ℹ️ Votre événement sera soumis à validation avant publication
-                </p>
+            <div class="form-group">
+                <label>Titre de l'événement</label>
+                <input type="text" name="title" required placeholder="Ex: Gala de Charité">
             </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                <textarea name="description" rows="4" required></textarea>
+            </div>
+
+            <div class="grid">
+                <div class="form-group">
+                    <label>Catégorie</label>
+                    <select name="category_id">
+                        @foreach($categories as $category)
+                            <option value="{{ $category->id }}">{{ $category->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Date de l'événement</label>
+                    <input type="datetime-local" name="start_date" required>
+                </div>
+            </div>
+
+            <div class="grid">
+                <div class="form-group">
+                    <label>Ville</label>
+                    <input type="text" name="city" required placeholder="Ex: Casablanca">
+                </div>
+                <div class="form-group">
+                    <label>Région</label>
+                    <input type="text" name="region" required placeholder="Ex: Casablanca-Settat">
+                </div>
+            </div>
+
+            <div class="grid">
+                <div class="form-group">
+                    <label>Nombre de places (Tickets)</label>
+                    <input type="number" name="available_tickets" required min="1">
+                </div>
+                <div class="form-group">
+                    <label>Prix (DH)</label>
+                    <input type="number" name="price" required min="0">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Image de couverture</label>
+                <input type="file" name="image" accept="image/*" required>
+            </div>
+
+            <button type="submit" class="btn-submit">Soumettre votre événement </button>
         </form>
     </div>
-</div>
+</section>
 @endsection

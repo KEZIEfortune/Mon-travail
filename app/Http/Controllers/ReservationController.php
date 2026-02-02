@@ -5,124 +5,135 @@ namespace App\Http\Controllers;
 use App\Models\Reservation;
 use App\Models\Event;
 use Illuminate\Http\Request;
-use Illuminate\Support\Auth;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ReservationController extends Controller
 {
-    public function store(Request $request)
+    /**
+     * Dashboard pour le MEMBRE (Celle-ci contient toutes tes stats Eventus)
+     */
+    public function memberDashboard()
     {
-        // Vérifier que l'utilisateur est connecté
-        if (Auth::check()) {
-            return redirect()->route('login')->with('error', 'Vous devez être connecté pour réserver');
-        }
-
-        // Vérifier que l'utilisateur est un membre
-        if (Auth::user()->role === 'Member'()) {
-            return redirect()->back()->with('error', 'Seuls les membres peuvent faire des réservations');
-        }
-
-        $validated = $request->validate([
-            'event_id' => 'required|exists:events,id',
-            'number_of_tickets' => 'required|integer|min:1|max:10',
-        ]);
-
-        $events = Event::findOrFail($validated['event_id']);
-
-        // Vérifier la disponibilité
-        if ($events->available_tickets && $events->available_tickets < $validated['number_of_tickets']) {
-            return redirect()->back()->with('error', 'Pas assez de places disponibles');
-        }
-
-        // Calculer le prix total
-        $total_price = $event->price * $validated['number_of_tickets'];
-
-        // Créer la réservation
-        $reservation = Reservation::create([
-            'user_id' => Auth::id(),
-            'event_id' => $validated['event_id'],
-            'number_of_tickets' => $validated['number_of_tickets'],
-            'total_price' => $total_price,
-            'status' => 'pending',
-            'payment_status' => $event->price > 0 ? 'pending' : 'paid',
-        ]);
-
-        // Mettre à jour les places disponibles
-        if ($events->available_tickets) {
-            $events->decrement('available_tickets', $validated['number_of_tickets']);
-        }
-
-        // Si gratuit, confirmer automatiquement
-        if ($events->price == 0) {
-            $reservation->update(['status' => 'confirmed']);
-            return redirect()->route('member.reservations')->with('success', 'Réservation confirmée avec succès !');
-        }
-
-        // Sinon rediriger vers paiement
-        return redirect()->route('member.reservations')->with('success', 'Réservation créée ! Veuillez procéder au paiement.');
-    }
-
-    public function destroy(Reservation $reservation)
-    {
-        // Vérifier que c'est bien l'utilisateur propriétaire
-        if ($reservation->user_id !== Auth::id()) {
-            abort(403, 'Non autorisé');
-        }
-
-        // Vérifier que la réservation peut être annulée
-        if ($reservation->status === 'cancelled') {
-            return redirect()->back()->with('error', 'Cette réservation est déjà annulée');
-        }
-
-        // Rembourser les places
-        if ($reservation->events->available_tickets !== null) {
-            $reservation->events->increment('available_tickets', $reservation->number_of_tickets);
-        }
-
-        // Annuler la réservation
-        $reservation->update([
-            'status' => 'cancelled',
-            'cancelled_at' => now(),
-        ]);
-
-        return redirect()->back()->with('success', 'Réservation annulée avec succès');
-    }
-}
-
-namespace App\Http\Controllers;
-
-use Illuminate\Http\Request;
-use App\Models\Event;
-use Illuminate\Support\Facades\Auth;
-
-class Reservation extends Controller
-{
-    public function processPayment(Request $request)
-    {
-        // 1. Récupérer l'événement
-        $events = Event::findOrFail($request->event_id);
         $user = Auth::user();
 
-        // 2. (Optionnel) Sauvegarder la réservation en base de données comme "En attente"
-        // Reservation::create([...]);
+        // Récupération des données pour ton design Eventus
+        $allReservations = Reservation::where('user_id', $user->id)->get();
 
-        // 3. Préparer le lien PayPal
-        // Ceci est un lien standard PayPal "Payer maintenant". 
-        // Remplace 'ton-email-paypal@business.com' par ton vrai email PayPal Business.
-        $paypalUrl = "https://www.paypal.com/cgi-bin/webscr";
-        $params = [
-            'cmd' => '_xclick',
-            'business' => 'ton-email-paypal@gmail.com', // <--- METS TON EMAIL PAYPAL ICI
-            'item_name' => 'Réservation : ' . $events->title,
-            'amount' => $events->price,
-            'currency_code' => 'EUR',
-            'return' => route('dashboard'), // Où revenir après paiement
-            'cancel_return' => route('dashboard'),
-        ];
+        return view('member.dashboard', [
+            'totalReservations'  => $allReservations->count(),
+            'activeReservations' => $allReservations->where('status', 'confirmed')->count(),
+            'totalSpent'         => $allReservations->where('status', 'confirmed')->sum('total_price'),
+            
+            'recentReservations' => Reservation::where('user_id', $user->id)
+                                    ->with('event')
+                                    ->latest()
+                                    ->take(5)
+                                    ->get(),
 
-        // Construire l'URL de redirection
-        $redirectUrl = $paypalUrl . '?' . http_build_query($params);
+            'upcomingEvents'     => Event::where('date', '>=', now())
+                                    ->latest()
+                                    ->take(6)
+                                    ->get(),
+        ]);
+    }
 
-        // 4. Rediriger l'utilisateur vers PayPal
-        return redirect()->away($redirectUrl);
+    /**
+     * Effectuer une réservation
+     */
+    public function reserve(Request $request, $eventId)
+    {
+        $event = Event::findOrFail($eventId);
+
+        $request->validate([
+            'number_of_tickets' => 'required|integer|min:1|max:' . $event->available_tickets,
+        ], [
+            'number_of_tickets.max' => 'Désolé, il ne reste que ' . $event->available_tickets . ' places.',
+        ]);
+
+        $exists = Reservation::where('user_id', Auth::id())
+            ->where('event_id', $eventId)
+            ->where('status', '!=', 'cancelled')
+            ->exists();
+
+        if ($exists) {
+            return back()->with('error', 'Vous avez déjà une réservation active pour cet événement.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            Reservation::create([
+                'user_id'           => Auth::id(),
+                'event_id'          => $event->id,
+                'number_of_tickets' => $request->number_of_tickets,
+                'total_price'       => $event->price * $request->number_of_tickets,
+                'status'            => 'confirmed',
+                'payment_status'    => 'paid',
+                'payment_method'    => 'card',
+                'reserved_at'       => now(),
+            ]);
+
+            $event->decrement('available_tickets', $request->number_of_tickets);
+
+            DB::commit();
+            return redirect()->route('member.dashboard')->with('success', 'Votre réservation a été confirmée !');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Erreur lors de la réservation : ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Liste des réservations pour Admin / Organizer
+     */
+    public function index()
+    {
+        $user = Auth::user();
+        
+        if ($user->role === 'admin') {
+            $reservations = Reservation::with(['event', 'user'])->latest()->paginate(20);
+        } elseif ($user->role === 'organizer') {
+            $reservations = Reservation::whereHas('event', function($query) use ($user) {
+                $query->where('user_id', $user->id); 
+            })->with(['event', 'user'])->latest()->paginate(20);
+        } else {
+            // Sécurité : un membre ne doit jamais voir l'index global
+            return redirect()->route('member.dashboard');
+        }
+
+        return view('admin.reservations.index', compact('reservations'));
+    }
+
+    /**
+     * Valider une réservation (Organizer)
+     */
+    public function validateReservation($id)
+    {
+        $reservation = Reservation::findOrFail($id);
+        if ($reservation->event->user_id !== Auth::id()) { abort(403); }
+        $reservation->update(['status' => 'confirmed']);
+        return back()->with('success', 'Réservation validée avec succès.');
+    }
+
+    /**
+     * Annuler une réservation (Organizer)
+     */
+    public function cancelByOrganizer($id)
+    {
+        $reservation = Reservation::findOrFail($id);
+        if ($reservation->event->user_id !== Auth::id()) { abort(403); }
+
+        DB::transaction(function () use ($reservation) {
+            $reservation->event->increment('available_tickets', $reservation->number_of_tickets);
+            $reservation->update([
+                'status' => 'cancelled',
+                'cancelled_at' => now(),
+                'cancellation_reason' => 'Annulée par l\'organisateur'
+            ]);
+        });
+
+        return back()->with('success', 'La réservation a été annulée.');
     }
 }

@@ -1,44 +1,41 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="csrf-token" content="{{ csrf_token() }}">
-
-        <title>{{ config('app.name', 'Eventus') }}</title>
-
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
-
-        <!-- Tailwind CSS via CDN -->
-        <script src="https://cdn.tailwindcss.com"></script>
-        
-        <!-- Alpine.js -->
-        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
-        <!-- Styles personnalisés -->
-        <style>
-            [x-cloak] { display: none !important; }
-        </style>
-    </head>
-    <body class="font-sans antialiased">
-        <div class="min-h-screen bg-gray-100">
-            @include('layouts.navigation')
-
-            <!-- Page Heading -->
-            @isset($header)
-                <header class="bg-white shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                        {{ $header }}
-                    </div>
-                </header>
-            @endisset
-
-            <!-- Page Content -->
-            <main>
-                @yield('content')
-            </main>
-        </div>
-    </body>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@yield('title', 'EVENTUS - Plateforme d\'Événements')</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+    
+    @yield('styles')
+    
+    @stack('styles')
+</head>
+<body>
+    <!-- ✅ BOUTON DE DÉCONNEXION TEMPORAIRE -->
+    <div style="position: fixed; top: 10px; right: 10px; z-index: 9999; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 10px;">
+        @auth
+            <div style="color: white; margin-bottom: 10px;">
+                👤 Connecté: <strong>{{ Auth::user()->name }}</strong>
+                <br>
+                📋 Rôle: <strong style="color: #fbbf24;">{{ Auth::user()->role }}</strong>
+            </div>
+            <form method="POST" action="{{ route('logout') }}" style="display: inline;">
+                @csrf
+                <button type="submit" style="background: #ef4444; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">
+                    🚪 Déconnexion
+                </button>
+            </form>
+        @else
+            <span style="background: #10b981; color: white; padding: 10px 15px; border-radius: 5px; display: block; text-align: center;">
+                ✅ Non connecté
+            </span>
+        @endauth
+    </div>
+    
+    @yield('content')
+    
+    @stack('scripts')
+</body>
 </html>

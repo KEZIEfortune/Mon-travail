@@ -1,83 +1,130 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\ReservationController;
-use App\Http\Controllers\CommentController;
-use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Organizer\OrganizerController;
-use App\Http\Controllers\Member\MemberController;
-use App\Http\Controllers\ProfileController;
-use Illuminate\Support\Facades\Auth;
-use App\Models\Event; 
+use App\Http\Controllers\Admin\AdminController;
 
-Route::get('/dashboard', function () {
-    // 1. On récupère tous les événements
-    $events = Event::all(); 
-    
-    // 2. On envoie la variable $events à la vue
-    return view('member.dashboard', compact('events')); 
-})->middleware(['auth', 'verified'])->name('dashboard');
-// 1. ROUTES PUBLIQUES (Visiteurs)
-Route::get('/', [EventController::class, 'index'])->name('home');
+/*
+|--------------------------------------------------------------------------
+| Routes Publiques (Visiteurs)
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/events', [EventController::class, 'index'])->name('events.index');
 Route::get('/events/{id}', [EventController::class, 'show'])->name('events.show');
-Route::get('/calendar', [EventController::class, 'calendar'])->name('events.calendar');
 
-// 2. REDIRECTION DASHBOARD (L'aiguillage central)
-Route::get('/dashboard', function () {
-    if (Auth::check()) {
-        $role = Auth::user()->role;
-        if ($role === 'Admin') return redirect()->route('admin.dashboard');
-        if ($role === 'Organizer') return redirect()->route('organizer.dashboard');
-        if ($role === 'Member') return redirect()->route('member.dashboard');
-    }
-    return redirect()->route('home');
-})->middleware(['auth'])->name('dashboard');
+/*
+|--------------------------------------------------------------------------
+| Routes d'Authentification
+|--------------------------------------------------------------------------
+*/
 
-// 3. ROUTES AUTHENTIFIÉES (Profil)
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+Route::post('/login', [LoginController::class, 'login']);
+Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
+Route::post('/register', [RegisterController::class, 'register']);
+
+/*
+|--------------------------------------------------------------------------
+| Routes Membres (authentifiés)
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['auth', 'member'])->prefix('member')->name('member.')->group(function () {
+    Route::get('/dashboard', [ReservationController::class, 'index'])->name('dashboard');
+    Route::post('/events/{id}/reserve', [ReservationController::class, 'store'])->name('reserve');
+    Route::post('/reservations/{id}/validate-payment', [ReservationController::class, 'validatePayment'])->name('reservations.validate');
+    Route::delete('/reservations/{id}', [ReservationController::class, 'cancel'])->name('reservations.cancel');
+    Route::post('/events/{id}/comment', [EventController::class, 'addComment'])->name('events.comment');
 });
 
-require __DIR__.'/auth.php';
+/*
+|--------------------------------------------------------------------------
+| Routes Organisateurs
+|--------------------------------------------------------------------------
+*/
 
-// 4. ROUTES MEMBRES (Member)
-Route::middleware(['auth'])->group(function () {
-    Route::get('/member/dashboard', [MemberController::class, 'dashboard'])->name('member.dashboard'); // Utilise index comme dans ton code
-    Route::get('/member/reservations', [MemberController::class, 'reservations'])->name('member.reservations');
-    Route::post('/reservations', [ReservationController::class, 'store'])->name('reservations.store');    
-    Route::delete('/reservations/{reservation}', [ReservationController::class, 'destroy'])->name('reservations.destroy');
+Route::middleware(['auth', 'organizer'])->prefix('organizer')->name('organizer.')->group(function () {
+    Route::get('/dashboard', [OrganizerController::class, 'dashboard'])->name('dashboard');
+    Route::get('/events', [OrganizerController::class, 'index'])->name('events.index');
+    Route::get('/events/create', [OrganizerController::class, 'create'])->name('events.create');
+    Route::post('/events', [OrganizerController::class, 'store'])->name('events.store');
+    Route::get('/events/{id}/edit', [OrganizerController::class, 'edit'])->name('events.edit');
+    Route::put('/events/{id}', [OrganizerController::class, 'update'])->name('events.update');
+    Route::delete('/events/{id}', [OrganizerController::class, 'destroy'])->name('events.destroy');
+    Route::get('/reservations', [OrganizerController::class, 'reservations'])->name('reservations.index');
+    Route::post('/reservations/{id}/confirm', [OrganizerController::class, 'confirmReservation'])->name('reservations.confirm');
+    Route::post('/reservations/{id}/cancel', [OrganizerController::class, 'cancelReservation'])->name('reservations.cancel');
 });
 
-// 5. ROUTES ORGANISATEURS (Organizer)
-Route::middleware(['auth'])->group(function () {
-    Route::get('/organizer/dashboard', [OrganizerController::class, 'dashboard'])->name('organizer.dashboard');
-    Route::get('/organizer/events', [OrganizerController::class, 'events'])->name('organizer.events');
-    Route::get('/organizer/events/create', [OrganizerController::class, 'create'])->name('organizer.events.create');
-    Route::post('/organizer/events', [OrganizerController::class, 'store'])->name('organizer.events.store');
-    Route::get('/organizer/events/{event}/edit', [OrganizerController::class, 'edit'])->name('organizer.events.edit');
-    Route::put('/organizer/events/{event}', [OrganizerController::class, 'update'])->name('organizer.events.update');
-    Route::delete('/organizer/events/{event}', [OrganizerController::class, 'destroy'])->name('organizer.events.destroy');
-    Route::get('/organizer/reservations', [OrganizerController::class, 'reservations'])->name('organizer.reservations');
-    Route::put('/organizer/reservations/{reservation}/confirm', [OrganizerController::class, 'confirmReservation'])->name('organizer.reservations.confirm');
-    Route::put('/organizer/reservations/{reservation}/cancel', [OrganizerController::class, 'cancelReservation'])->name('organizer.reservations.cancel');
+/*
+|--------------------------------------------------------------------------
+| Routes Administrateur
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    // Dashboard admin
+    Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+    
+    /*
+    | Gestion des Membres
+    */
+    Route::get('/members', [AdminController::class, 'members'])->name('members.index');
+    Route::get('/members/create', [AdminController::class, 'createMemberForm'])->name('members.create');
+    Route::post('/members', [AdminController::class, 'storeMember'])->name('members.store');
+    Route::get('/members/{id}/edit', [AdminController::class, 'editMember'])->name('members.edit');
+    Route::put('/members/{id}', [AdminController::class, 'updateMember'])->name('members.update');
+    Route::delete('/members/{id}', [AdminController::class, 'deleteMember'])->name('members.delete');
+    Route::post('/members/{id}/ban', [AdminController::class, 'banMember'])->name('members.ban');
+    Route::post('/members/{id}/unban', [AdminController::class, 'unbanMember'])->name('members.unban');
+    
+    /*
+    | Gestion des Organisateurs
+    */
+    Route::get('/organizers', [AdminController::class, 'organizers'])->name('organizers.index');
+    Route::get('/organizers/create', [AdminController::class, 'createOrganizerForm'])->name('organizers.create');
+    Route::post('/organizers', [AdminController::class, 'storeOrganizer'])->name('organizers.store');
+    Route::get('/organizers/{id}/edit', [AdminController::class, 'editOrganizer'])->name('organizers.edit');
+    Route::put('/organizers/{id}', [AdminController::class, 'updateOrganizer'])->name('organizers.update');
+    Route::delete('/organizers/{id}', [AdminController::class, 'deleteOrganizer'])->name('organizers.delete');
+    Route::post('/organizers/{id}/suspend', [AdminController::class, 'suspendOrganizer'])->name('organizers.suspend');
+    Route::post('/organizers/{id}/unsuspend', [AdminController::class, 'unsuspendOrganizer'])->name('organizers.unsuspend');
+    
+    /*
+    | Validation des Événements
+    */
+    Route::get('/events/pending', [AdminController::class, 'pendingEvents'])->name('events.pending');
+    Route::get('/events', [AdminController::class, 'allEvents'])->name('events.index');
+    Route::post('/events/{id}/validate', [AdminController::class, 'validateEvent'])->name('events.validate');
+    Route::post('/events/{id}/reject', [AdminController::class, 'rejectEvent'])->name('events.reject');
+    Route::delete('/events/{id}', [AdminController::class, 'deleteEvent'])->name('events.delete');
+    
+    /*
+    | Gestion des Catégories
+    */
+    Route::get('/categories', [AdminController::class, 'categories'])->name('categories.index');
+    Route::get('/categories/create', [AdminController::class, 'createCategoryForm'])->name('categories.create');
+    Route::post('/categories', [AdminController::class, 'storeCategory'])->name('categories.store');
+    Route::get('/categories/{id}/edit', [AdminController::class, 'editCategory'])->name('categories.edit');
+    Route::put('/categories/{id}', [AdminController::class, 'updateCategory'])->name('categories.update');
+    Route::delete('/categories/{id}', [AdminController::class, 'deleteCategory'])->name('categories.delete');
+    
+    /*
+    | Modération des Commentaires
+    */
+    Route::get('/comments', [AdminController::class, 'comments'])->name('comments.index');
+    Route::delete('/comments/{id}', [AdminController::class, 'deleteComment'])->name('comments.delete');
+    
+    /*
+    | Statistiques et Rapports
+    */
+    Route::get('/statistics', [AdminController::class, 'statistics'])->name('statistics');
 });
-
-// 6. ROUTES ADMIN (Admin)
-Route::middleware(['auth'])->group(function () {
-    Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
-    Route::get('/admin/users', [AdminController::class, 'users'])->name('admin.users');
-    Route::get('/admin/organizers', [AdminController::class, 'organizers'])->name('admin.organizers');
-    Route::get('/admin/events', [AdminController::class, 'events'])->name('admin.events');
-    Route::get('/admin/categories', [AdminController::class, 'categories'])->name('admin.categories');
-});
-
-// 7. COMMENTAIRES
-Route::post('/comments', [CommentController::class, 'store'])->name('comments.store');
-Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy')->middleware('auth');
-
-
-Route::post('/reservation/payment', [ReservationController::class, 'processPayment'])->name('reservation.payment');
