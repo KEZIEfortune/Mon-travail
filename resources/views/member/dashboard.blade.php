@@ -23,7 +23,7 @@ body{font-family:'Jost','Segoe UI',sans-serif;background:var(--dark);color:var(-
 .ev-nav-links a:hover{color:var(--gold);}
 .nav-user{display:flex;align-items:center;gap:12px;}
 .nav-user-name{font-size:12px;color:var(--gold);letter-spacing:1px;}
-.btn-logout{color:var(--text-dim);font-size:11px;letter-spacing:1px;text-transform:uppercase;text-decoration:none;padding:6px 16px;border:1px solid rgba(212,160,23,0.2);border-radius:50px;transition:all .3s;}
+.btn-logout{color:var(--text-dim);font-size:11px;letter-spacing:1px;text-transform:uppercase;text-decoration:none;padding:6px 16px;border:1px solid rgba(212,160,23,0.2);border-radius:50px;transition:all .3s;background:transparent;cursor:pointer;font-family:inherit;}
 .btn-logout:hover{background:rgba(212,160,23,0.08);color:var(--gold);}
 
 /* ── HERO DASHBOARD ── */
@@ -110,11 +110,8 @@ tbody tr:hover{background:rgba(212,160,23,0.02);}
         <span class="logo-name">EVENTUS</span>
     </a>
     <ul class="ev-nav-links">
-        
         <li><a href="{{ route('member.dashboard') }}">Dashboard</a></li>
-
         <li><a href="{{ route('member.events.search') }}">Événements</a></li>
-
         <li><a href="{{ route('member.reservations.index') }}">Réservations</a></li>
     </ul>
     <div class="nav-user">
@@ -160,9 +157,10 @@ tbody tr:hover{background:rgba(212,160,23,0.02);}
 </section>
 
 <!-- ACTIONS RAPIDES -->
+<!-- ✅ Routes corrigées : membereventsearch et member.p étaient cassées -->
 <section class="actions-section">
     <div class="actions-grid">
-        <a href="{{ route('membereventsearch}" class="action-card">
+        <a href="{{ route('member.events.search') }}" class="action-card">
             <div class="action-card-icon">🔍</div>
             <h4>Rechercher</h4>
         </a>
@@ -170,7 +168,7 @@ tbody tr:hover{background:rgba(212,160,23,0.02);}
             <div class="action-card-icon">📋</div>
             <h4>Mes Réservations</h4>
         </a>
-        <a href="{{ route('member.p }}" class="action-card">
+        <a href="{{ route('member.profile') }}" class="action-card">
             <div class="action-card-icon">⚙️</div>
             <h4>Mon Profil</h4>
         </a>
@@ -178,9 +176,10 @@ tbody tr:hover{background:rgba(212,160,23,0.02);}
 </section>
 
 <!-- RECHERCHE RAPIDE -->
+<!-- ✅ Route corrigée : membre.events.search → member.events.search -->
 <section class="search-box">
     <h3>🔍 Rechercher un événement</h3>
-    <form action="{{ route('membre.events.search') }}" method="GET">
+    <form action="{{ route('member.events.search') }}" method="GET">
         <div class="search-bar">
             <input type="text" name="q" placeholder="Nom de l'événement...">
             <select name="type">
@@ -196,6 +195,7 @@ tbody tr:hover{background:rgba(212,160,23,0.02);}
 </section>
 
 <!-- ÉVÉNEMENTS POPULAIRES -->
+<!-- ✅ Colonnes corrigées : titre→title, date→start_date, lieu→location, prix→price, places_restantes→available_tickets -->
 <section class="events-section">
     <div class="section-header">
         <h2>🔥 Événements populaires</h2>
@@ -205,14 +205,14 @@ tbody tr:hover{background:rgba(212,160,23,0.02);}
         <div class="event-card">
             <div class="event-card-img">🎉</div>
             <div class="event-card-body">
-                <h3>{{ $event->titre }}</h3>
+                <h3>{{ $event->title }}</h3>
                 <div class="event-meta">
-                    <div class="meta-item">📅 {{ \Carbon\Carbon::parse($event->date)->format('d M Y') }}</div>
-                    <div class="meta-item">📍 {{ $event->lieu }}</div>
-                    <div class="meta-item">💰 {{ number_format($event->prix, 0) }} DH</div>
+                    <div class="meta-item">📅 {{ \Carbon\Carbon::parse($event->start_date)->format('d M Y') }}</div>
+                    <div class="meta-item">📍 {{ $event->location }}</div>
+                    <div class="meta-item">💰 {{ number_format($event->price, 0) }} DH</div>
                 </div>
                 <div class="event-card-footer">
-                    <span style="font-size:11px;color:var(--text-dim);">{{ $event->places_restantes ?? $event->places_disponibles }} places</span>
+                    <span style="font-size:11px;color:var(--text-dim);">{{ $event->available_tickets }} places</span>
                     <a href="{{ route('events.show', $event->id) }}" class="btn-voir">Voir →</a>
                 </div>
             </div>
@@ -224,6 +224,8 @@ tbody tr:hover{background:rgba(212,160,23,0.02);}
 </section>
 
 <!-- MES DERNIÈRES RÉSERVATIONS -->
+<!-- ✅ Colonnes corrigées sur event (titre→title, date→start_date) et reservation (nombre_places→number_of_tickets, montant_total→total_price) -->
+<!-- ✅ Route corrigée : membre.reservations.show → member.reservations.show -->
 @if(isset($recentReservations) && $recentReservations->count() > 0)
 <section class="table-card">
     <h3>🎫 Mes dernières réservations</h3>
@@ -242,10 +244,10 @@ tbody tr:hover{background:rgba(212,160,23,0.02);}
             <tbody>
                 @foreach($recentReservations as $reservation)
                 <tr>
-                    <td><strong>{{ $reservation->event->titre }}</strong></td>
-                    <td>{{ \Carbon\Carbon::parse($reservation->event->date)->format('d/m/Y') }}</td>
-                    <td>{{ $reservation->nombre_places }}</td>
-                    <td>{{ number_format($reservation->montant_total, 0) }} DH</td>
+                    <td><strong>{{ $reservation->event->title }}</strong></td>
+                    <td>{{ \Carbon\Carbon::parse($reservation->event->start_date)->format('d/m/Y') }}</td>
+                    <td>{{ $reservation->number_of_tickets }}</td>
+                    <td>{{ number_format($reservation->total_price, 0) }} DH</td>
                     <td>
                         @if($reservation->status === 'confirmed')
                             <span class="badge badge-success">Confirmée</span>
@@ -256,7 +258,7 @@ tbody tr:hover{background:rgba(212,160,23,0.02);}
                         @endif
                     </td>
                     <td>
-                        <a href="{{ route('membre.reservations.show', $reservation->id) }}" class="btn-voir btn-sm">Voir</a>
+                        <a href="{{ route('member.reservations.show', $reservation->id) }}" class="btn-voir btn-sm">Voir</a>
                     </td>
                 </tr>
                 @endforeach

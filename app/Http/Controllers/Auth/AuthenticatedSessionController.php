@@ -41,7 +41,7 @@ class AuthenticatedSessionController extends Controller
     }
 
     // Par défaut pour les membres simples
-    return redirect()->intended('/member/dashboard');
+    return redirect()->intended(route('member.dashboard'));
     }
 
     /**

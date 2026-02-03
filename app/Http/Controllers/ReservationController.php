@@ -13,7 +13,7 @@ class ReservationController extends Controller
     /**
      * Dashboard pour le MEMBRE (Celle-ci contient toutes tes stats Eventus)
      */
-    public function memberDashboard()
+    public function Dashboard()
     {
         $user = Auth::user();
 
@@ -31,7 +31,7 @@ class ReservationController extends Controller
                                     ->take(5)
                                     ->get(),
 
-            'upcomingEvents'     => Event::where('date', '>=', now())
+            'upcomingEvents'     => Event::where('start_date', '>=', now())
                                     ->latest()
                                     ->take(6)
                                     ->get(),
@@ -136,4 +136,5 @@ class ReservationController extends Controller
 
         return back()->with('success', 'La réservation a été annulée.');
     }
+    
 }

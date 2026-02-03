@@ -38,7 +38,15 @@ Route::post('/register', [RegisterController::class, 'register']);
 */
 
 Route::middleware(['auth', 'member'])->prefix('member')->name('member.')->group(function () {
-    Route::get('/dashboard', [ReservationController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', [ReservationController::class, 'Dashboard'])->name('dashboard');
+
+    // ✅ Routes à ajouter
+    Route::get('/events/search', [EventController::class, 'search'])->name('events.search');
+    Route::get('/reservations', [ReservationController::class, 'myReservations'])->name('reservations.index');
+    Route::get('/reservations/{id}', [ReservationController::class, 'showReservation'])->name('reservations.show');
+    Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'show'])->name('profile');
+
+    // Déjà existantes
     Route::post('/events/{id}/reserve', [ReservationController::class, 'store'])->name('reserve');
     Route::post('/reservations/{id}/validate-payment', [ReservationController::class, 'validatePayment'])->name('reservations.validate');
     Route::delete('/reservations/{id}', [ReservationController::class, 'cancel'])->name('reservations.cancel');
